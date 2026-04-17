@@ -12,6 +12,7 @@ class AppState: ObservableObject {
     @Published var emotionalEntries: [EmotionalEntry] = EmotionalEntry.sampleData()
     @Published var photoMemories: [PhotoMemory] = PhotoMemory.sampleData()
     @Published var reminders: [Reminder] = Reminder.sampleData()
+    @Published var voiceMessages: [VoiceMessage] = VoiceMessage.sampleMessages()
     @Published var showWelcomeAnimation: Bool = true
 
     enum Tab: String, CaseIterable {

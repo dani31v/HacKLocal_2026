@@ -112,12 +112,14 @@ struct VoiceMessage: Identifiable {
     var date: Date
     var isFromCaregiver: Bool
     var text: String?
+    var audioURL: URL?
 
     static func sampleMessages() -> [VoiceMessage] {
         [
             VoiceMessage(senderName: "Tu hija", senderEmoji: "👩🏽",
                          duration: "0:18", date: Date(), isFromCaregiver: true,
-                         text: "Hola mami, me dio mucho gusto escucharte. Te quiero ❤️")
+                         text: "Hola mami, me dio mucho gusto escucharte. Te quiero ❤️",
+                         audioURL: nil)
         ]
     }
 }

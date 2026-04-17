@@ -44,14 +44,14 @@ struct MessagesView: View {
                         .padding(.horizontal, 20)
 
                     // MARK: - Received messages
-                    if !VoiceMessage.sampleMessages().isEmpty {
+                    if !appState.voiceMessages.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Mensajes recibidos")
                                 .font(.echoCaption)
                                 .foregroundColor(Color.echoTextSecondary)
                                 .padding(.horizontal, 20)
 
-                            ForEach(VoiceMessage.sampleMessages()) { msg in
+                            ForEach(appState.voiceMessages) { msg in
                                 ReceivedMessageCard(message: msg)
                                     .padding(.horizontal, 20)
                             }
@@ -107,6 +107,7 @@ struct RecipientCard: View {
 // MARK: - Recording Card
 struct RecordingCard: View {
     @ObservedObject var viewModel: MessagesViewModel
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         VStack(spacing: 20) {
@@ -174,7 +175,7 @@ struct RecordingCard: View {
 
                     // Send
                     Button {
-                        withAnimation { viewModel.sendMessage() }
+                        withAnimation { viewModel.sendMessage(appState: appState) }
                     } label: {
                         Label("Enviar", systemImage: "paperplane.fill")
                             .font(.echoCaption)
@@ -233,6 +234,8 @@ struct ReceivedMessageCard: View {
     let message: VoiceMessage
     @State private var isExpanded = false
     @State private var heartPulse = false
+    @State private var audioPlayer: AVAudioPlayer?
+    @State private var isPlaying = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -276,9 +279,31 @@ struct ReceivedMessageCard: View {
             // Audio playback row
             HStack(spacing: 10) {
                 Button {
-                    SpeechHelper.shared.speak(message.text ?? "Sin mensaje")
+                    if let url = message.audioURL {
+                        if isPlaying {
+                            audioPlayer?.pause()
+                            isPlaying = false
+                        } else {
+                            do {
+                                if audioPlayer == nil {
+                                    audioPlayer = try AVAudioPlayer(contentsOf: url)
+                                }
+                                audioPlayer?.play()
+                                isPlaying = true
+                                if let duration = audioPlayer?.duration {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                                        self.isPlaying = false
+                                    }
+                                }
+                            } catch {
+                                print("Error playing audio: \(error)")
+                            }
+                        }
+                    } else {
+                        SpeechHelper.shared.speak(message.text ?? "Sin mensaje")
+                    }
                 } label: {
-                    Image(systemName: "play.fill")
+                    Image(systemName: (isPlaying || message.audioURL == nil) ? (isPlaying ? "pause.fill" : "play.fill") : "play.fill")
                         .font(.system(size: 14))
                         .foregroundColor(Color.echoTeal)
                         .frame(width: 30, height: 30)
