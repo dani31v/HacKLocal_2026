@@ -122,14 +122,26 @@ struct PhotoThumbnail: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Photo placeholder (replace with actual image)
-            RoundedRectangle(cornerRadius: 16)
-                .fill(photoBackground)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(
-                    Image(systemName: photo.imageName)
-                        .font(.system(size: 32))
-                        .foregroundColor(.white.opacity(0.85))
-                )
+            Group {
+                if photo.imageName.starts(with: "http"), let url = URL(string: photo.imageName) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 16).fill(photoBackground)
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(photoBackground)
+                        .overlay(
+                            Image(systemName: photo.imageName)
+                                .font(.system(size: 32))
+                                .foregroundColor(.white.opacity(0.85))
+                        )
+                }
+            }
+            .aspectRatio(1, contentMode: .fill)
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .clipped()
 
             // Time + emoji overlay
             HStack(spacing: 4) {
@@ -183,17 +195,28 @@ struct PhotoDetailSheet: View {
 
             // Large photo
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.echoTeal, Color.echoBlue],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
+                if memory.imageName.starts(with: "http"), let url = URL(string: memory.imageName) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.gray.opacity(0.2))
+                    }
                     .frame(height: 260)
-                Image(systemName: memory.imageName)
-                    .font(.system(size: 72))
-                    .foregroundColor(.white.opacity(0.9))
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                } else {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.echoTeal, Color.echoBlue],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 260)
+                    Image(systemName: memory.imageName)
+                        .font(.system(size: 72))
+                        .foregroundColor(.white.opacity(0.9))
+                }
             }
             .padding(.horizontal, 20)
 
@@ -255,28 +278,28 @@ struct EmotionMapView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                Text("Mapa emocional de la semana")
+                Text("Mapa emocional de los últimos 30 días")
                     .font(.echoCaption)
                     .foregroundColor(Color.echoTextSecondary)
                     .padding(.top, 8)
 
-                // Simple bubble grid representing emotion map
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
-                    ForEach(appState.photoMemories) { photo in
-                        VStack(spacing: 6) {
-                            Circle()
-                                .fill(photo.mood.color.opacity(0.25))
-                                .frame(width: 56, height: 56)
-                                .overlay(
-                                    Circle().stroke(photo.mood.color, lineWidth: 2)
-                                )
-                                .overlay(
-                                    Text(photo.emoji)
-                                        .font(.system(size: 24))
-                                )
-                            Text(photo.time)
-                                .font(.echoSmall)
+                // Calendar-like grid representing emotion map
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 12) {
+                    ForEach(appState.emotionalEntries) { entry in
+                        VStack(spacing: 4) {
+                            Text(entry.date.shortDay.prefix(1))
+                                .font(.system(size: 10))
                                 .foregroundColor(Color.echoTextMuted)
+                            Circle()
+                                .fill(entry.mood.color.opacity(0.8))
+                                .frame(width: 36, height: 36)
+                                .overlay(
+                                    Text(entry.mood.emoji)
+                                        .font(.system(size: 16))
+                                )
+                            Text("\(Calendar.current.component(.day, from: entry.date))")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(Color.echoTextPrimary)
                         }
                     }
                 }

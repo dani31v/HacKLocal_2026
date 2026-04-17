@@ -1,4 +1,16 @@
 import SwiftUI
+import AVFoundation
+
+class SpeechHelper {
+    static let shared = SpeechHelper()
+    let synthesizer = AVSpeechSynthesizer()
+    
+    func speak(_ text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "es-MX")
+        synthesizer.speak(utterance)
+    }
+}
 
 struct MessagesView: View {
     @EnvironmentObject var appState: AppState
@@ -263,12 +275,16 @@ struct ReceivedMessageCard: View {
 
             // Audio playback row
             HStack(spacing: 10) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.echoTeal)
-                    .frame(width: 30, height: 30)
-                    .background(Color.echoTeal.opacity(0.12))
-                    .clipShape(Circle())
+                Button {
+                    SpeechHelper.shared.speak(message.text ?? "Sin mensaje")
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.echoTeal)
+                        .frame(width: 30, height: 30)
+                        .background(Color.echoTeal.opacity(0.12))
+                        .clipShape(Circle())
+                }
 
                 // Fake waveform bars
                 HStack(spacing: 3) {

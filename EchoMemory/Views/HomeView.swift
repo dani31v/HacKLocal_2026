@@ -60,8 +60,11 @@ struct HomeView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(appState.reminders) { reminder in
-                                ReminderCard(reminder: reminder)
+                            let sortedIndices = appState.reminders.indices.sorted {
+                                !appState.reminders[$0].isCompleted && appState.reminders[$1].isCompleted
+                            }
+                            ForEach(sortedIndices, id: \.self) { index in
+                                ReminderCard(reminder: $appState.reminders[index])
                             }
                         }
                         .padding(.horizontal, 20)
@@ -175,7 +178,7 @@ struct PostItMessage: View {
 
 // MARK: - Reminder Card
 struct ReminderCard: View {
-    @State var reminder: Reminder
+    @Binding var reminder: Reminder
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

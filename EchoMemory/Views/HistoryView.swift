@@ -15,6 +15,14 @@ struct HistoryView: View {
         appState.emotionalEntries.last
     }
 
+    var visibleEntries: [EmotionalEntry] {
+        switch selectedPeriod {
+        case .day: return Array(appState.emotionalEntries.suffix(1))
+        case .week: return Array(appState.emotionalEntries.suffix(7))
+        case .month: return Array(appState.emotionalEntries.suffix(30))
+        }
+    }
+
     var insightMessage: String {
         guard let today = todayEntry, let yesterday = appState.emotionalEntries.dropLast().last else {
             return "Registra cómo te sientes cada día."
@@ -90,7 +98,7 @@ struct HistoryView: View {
                     .padding(.horizontal, 20)
 
                     // MARK: - Emotion Line Chart
-                    EmotionLineChart(entries: appState.emotionalEntries, appeared: chartAppeared)
+                    EmotionLineChart(entries: visibleEntries, appeared: chartAppeared)
                         .frame(height: 180)
                         .padding(.horizontal, 20)
                         .echoCard()
@@ -122,7 +130,7 @@ struct HistoryView: View {
                             .foregroundColor(Color.echoTextPrimary)
                             .padding(.horizontal, 20)
 
-                        ForEach(appState.emotionalEntries.reversed()) { entry in
+                        ForEach(visibleEntries.reversed()) { entry in
                             EntryRow(entry: entry)
                                 .padding(.horizontal, 20)
                         }

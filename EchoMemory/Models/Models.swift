@@ -41,15 +41,14 @@ struct EmotionalEntry: Identifiable, Codable {
     static func sampleData() -> [EmotionalEntry] {
         let calendar = Calendar.current
         let today = Date()
-        return [
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -6, to: today)!, mood: .neutral),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -5, to: today)!, mood: .sad),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -4, to: today)!, mood: .neutral, note: "Tomé mi medicina"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -3, to: today)!, mood: .great, note: "Llamé a mi hija"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -2, to: today)!, mood: .great, note: "Salí al jardín"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -1, to: today)!, mood: .neutral),
-            EmotionalEntry(date: today, mood: .great, note: "Me sentí con energía")
-        ]
+        var entries: [EmotionalEntry] = []
+        for i in (0..<30).reversed() {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let randomMood: Mood = [.great, .great, .neutral, .sad, .great].randomElement()!
+            let note = i < 3 ? (randomMood == .great ? "Me sentí bien" : "Un día normal") : nil
+            entries.append(EmotionalEntry(date: date, mood: randomMood, note: note))
+        }
+        return entries
     }
 }
 
@@ -68,16 +67,16 @@ struct PhotoMemory: Identifiable {
         let calendar = Calendar.current
         let today = Date()
         return [
-            PhotoMemory(date: today, time: "10:15 AM", imageName: "cup.and.saucer.fill",
+            PhotoMemory(date: today, time: "10:15 AM", imageName: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800",
                         emoji: "😊", location: "Cocina", mood: .great),
-            PhotoMemory(date: today, time: "3:45 PM", imageName: "heart.fill",
+            PhotoMemory(date: today, time: "3:45 PM", imageName: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800",
                         emoji: "❤️", relatedPerson: "Hija", mood: .great),
-            PhotoMemory(date: today, time: "5:20 PM", imageName: "leaf.fill",
+            PhotoMemory(date: today, time: "5:20 PM", imageName: "https://images.unsplash.com/photo-1416879598555-5380572ddad7?auto=format&fit=crop&q=80&w=800",
                         emoji: "😊", location: "Jardín", mood: .great),
             PhotoMemory(date: calendar.date(byAdding: .day, value: -1, to: today)!, time: "7:10 AM",
-                        imageName: "sunrise.fill", emoji: "😊", location: "Ventana", mood: .great),
+                        imageName: "https://images.unsplash.com/photo-1541883584821-2e6b72a6b245?auto=format&fit=crop&q=80&w=800", emoji: "😊", location: "Ventana", mood: .great),
             PhotoMemory(date: calendar.date(byAdding: .day, value: -1, to: today)!, time: "6:30 PM",
-                        imageName: "house.fill", emoji: "❤️", relatedPerson: "Familia", mood: .neutral)
+                        imageName: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800", emoji: "❤️", relatedPerson: "Familia", mood: .neutral)
         ]
     }
 }
