@@ -3,11 +3,11 @@ import Combine
 
 class AppState: ObservableObject {
     @Published var selectedTab: Tab = .home
-    @Published var userName: String = "Daniela"
+    @Published var userName: String = "Carmen"
     @Published var userAge: Int = 72
     @Published var todayMessage: String = "Hoy vas a tomar tu medicamento a las 9 AM."
-    @Published var caregiverName: String = "Tu mamá"
-    @Published var caregiverEmoji: String = "👩‍🦳"
+    @Published var caregiverName: String = "Tu hija"
+    @Published var caregiverEmoji: String = "👩🏽"
     @Published var hasUnreadMessage: Bool = true
     @Published var emotionalEntries: [EmotionalEntry] = EmotionalEntry.sampleData()
     @Published var photoMemories: [PhotoMemory] = PhotoMemory.sampleData()

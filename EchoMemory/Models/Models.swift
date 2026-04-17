@@ -71,7 +71,7 @@ struct PhotoMemory: Identifiable {
             PhotoMemory(date: today, time: "10:15 AM", imageName: "cup.and.saucer.fill",
                         emoji: "😊", location: "Cocina", mood: .great),
             PhotoMemory(date: today, time: "3:45 PM", imageName: "heart.fill",
-                        emoji: "❤️", relatedPerson: "Mamá", mood: .great),
+                        emoji: "❤️", relatedPerson: "Hija", mood: .great),
             PhotoMemory(date: today, time: "5:20 PM", imageName: "leaf.fill",
                         emoji: "😊", location: "Jardín", mood: .great),
             PhotoMemory(date: calendar.date(byAdding: .day, value: -1, to: today)!, time: "7:10 AM",
@@ -116,9 +116,9 @@ struct VoiceMessage: Identifiable {
 
     static func sampleMessages() -> [VoiceMessage] {
         [
-            VoiceMessage(senderName: "Tu mamá", senderEmoji: "👩‍🦳",
+            VoiceMessage(senderName: "Tu hija", senderEmoji: "👩🏽",
                          duration: "0:18", date: Date(), isFromCaregiver: true,
-                         text: "Me dio mucho gusto escucharte. Te quiero ❤️")
+                         text: "Hola mami, me dio mucho gusto escucharte. Te quiero ❤️")
         ]
     }
 }
