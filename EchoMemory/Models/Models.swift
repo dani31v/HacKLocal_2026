@@ -11,7 +11,7 @@ struct EmotionalEntry: Identifiable, Codable {
     enum Mood: String, Codable, CaseIterable {
         case great = "Bien"
         case neutral = "Neutro"
-        case sad = "Mal"
+        case sad = "Decaído"
 
         var color: Color {
             switch self {

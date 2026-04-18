@@ -8,7 +8,6 @@ struct PhotosView: View {
     enum PhotoFilter: String, CaseIterable {
         case day = "Día"
         case week = "Semana"
-        case emotionMap = "Mapa emocional"
     }
 
     var filteredPhotos: [PhotoMemory] {
@@ -16,8 +15,6 @@ struct PhotosView: View {
         case .day:
             return appState.photoMemories.filter { Calendar.current.isDateInToday($0.date) }
         case .week:
-            return appState.photoMemories
-        case .emotionMap:
             return appState.photoMemories
         }
     }
@@ -68,19 +65,15 @@ struct PhotosView: View {
             .padding(.bottom, 16)
 
             // MARK: - Content
-            if selectedFilter == .emotionMap {
-                EmotionMapView()
-            } else {
-                ScrollView(showsIndicators: false) {
-                    if filteredPhotos.isEmpty {
-                        EmptyPhotosState()
-                            .padding(.top, 60)
-                    } else {
-                        PhotoGrid(photos: filteredPhotos, selectedMemory: $selectedMemory)
-                            .padding(.horizontal, 20)
-                    }
-                    Spacer(minLength: 20)
+            ScrollView(showsIndicators: false) {
+                if filteredPhotos.isEmpty {
+                    EmptyPhotosState()
+                        .padding(.top, 60)
+                } else {
+                    PhotoGrid(photos: filteredPhotos, selectedMemory: $selectedMemory)
+                        .padding(.horizontal, 20)
                 }
+                Spacer(minLength: 20)
             }
         }
         .sheet(item: $selectedMemory) { memory in
@@ -271,56 +264,6 @@ struct PhotoDetailSheet: View {
     }
 }
 
-// MARK: - Emotion Map View
-struct EmotionMapView: View {
-    @EnvironmentObject var appState: AppState
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                Text("Mapa emocional de los últimos 30 días")
-                    .font(.echoCaption)
-                    .foregroundColor(Color.echoTextSecondary)
-                    .padding(.top, 8)
-
-                // Calendar-like grid representing emotion map
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 12) {
-                    ForEach(appState.emotionalEntries) { entry in
-                        VStack(spacing: 4) {
-                            Text(entry.date.shortDay.prefix(1))
-                                .font(.system(size: 10))
-                                .foregroundColor(Color.echoTextMuted)
-                            Circle()
-                                .fill(entry.mood.color.opacity(0.8))
-                                .frame(width: 36, height: 36)
-                                .overlay(
-                                    Text(entry.mood.emoji)
-                                        .font(.system(size: 16))
-                                )
-                            Text("\(Calendar.current.component(.day, from: entry.date))")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(Color.echoTextPrimary)
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                // Legend
-                HStack(spacing: 20) {
-                    ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
-                        HStack(spacing: 6) {
-                            Circle().fill(mood.color).frame(width: 10, height: 10)
-                            Text(mood.rawValue).font(.echoSmall).foregroundColor(Color.echoTextSecondary)
-                        }
-                    }
-                }
-                .padding(.top, 8)
-
-                Spacer(minLength: 20)
-            }
-        }
-    }
-}
 
 // MARK: - Filter Pill
 struct FilterPill: View {
