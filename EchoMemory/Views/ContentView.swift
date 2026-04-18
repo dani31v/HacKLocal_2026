@@ -19,14 +19,17 @@ struct ContentView: View {
                 case .home:
                     HomeView()
                         .transition(.opacity)
+                case .activities:
+                    AIActivitiesView()
+                        .transition(.opacity)
                 case .photos:
                     PhotosView()
                         .transition(.opacity)
                 case .messages:
                     MessagesView()
                         .transition(.opacity)
-                case .history:
-                    HistoryView()
+                case .profile:
+                    ProfileView()
                         .transition(.opacity)
                 }
             }
@@ -80,30 +83,14 @@ struct TabBarItem: View {
                             .frame(width: 48, height: 48)
                     }
 
-                    // Special mic button
-                    if tab == .messages {
-                        ZStack {
-                            Circle()
-                                .fill(isSelected ? Color.echoTeal : Color.echoCream)
-                                .frame(width: 54, height: 54)
-                                .shadow(color: Color.echoTeal.opacity(0.3), radius: 8)
-                            Image(systemName: tab.rawValue)
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(isSelected ? .white : Color.echoTextSecondary)
-                        }
-                        .offset(y: -10)
-                    } else {
-                        Image(systemName: tab.rawValue)
-                            .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
-                            .foregroundColor(isSelected ? Color.echoTeal : Color.echoTextMuted)
-                    }
-                }
-
-                if tab != .messages {
-                    Text(tab.label)
-                        .font(.echoSmall)
+                    Image(systemName: tab.rawValue)
+                        .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
                         .foregroundColor(isSelected ? Color.echoTeal : Color.echoTextMuted)
                 }
+
+                Text(tab.label)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? Color.echoTeal : Color.echoTextMuted)
             }
             .frame(maxWidth: .infinity)
         }

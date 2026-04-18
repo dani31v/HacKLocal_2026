@@ -1,10 +1,16 @@
 import SwiftUI
 
+
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
     @State private var cardAppeared = false
     @State private var postItAppeared = false
     @State private var reminderIndex = 0
+    
+    @State private var showImagePicker = false
+    @State private var selectedImage: UIImage? = nil
+    @State private var detectedEmotion: String? = nil
+    @State private var isAnalyzing = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -21,7 +27,7 @@ struct HomeView: View {
                             .foregroundColor(Color.echoTextPrimary)
                     }
                     Spacer()
-                    // Date pill
+                   
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Hoy es")
                             .font(.echoSmall)
@@ -29,11 +35,11 @@ struct HomeView: View {
                         Text(Date().dayOfWeekSpanish)
                             .font(.echoCaption)
                             .fontWeight(.semibold)
-                            .foregroundColor(Color.echoTeal)
+                            .foregroundColor(Color.black)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(Color.echoMint)
+                   // .background(Color.echoMint)
                     .cornerRadius(14)
                 }
                 .padding(.horizontal, 20)
@@ -64,7 +70,7 @@ struct HomeView: View {
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(Color.echoTeal)
+                                .foregroundColor(Color.echoCoral)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -93,9 +99,90 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                 }
 
-                // MARK: - Today's Mood Logger
-                MoodLoggerCard()
-                    .padding(.horizontal, 20)
+                // MARK: - Emotion Registration Card
+                VStack(spacing: 16) {
+                    // Header
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("¿Cómo te sientes hoy?")
+                                .font(.echoHeadline)
+                                .foregroundColor(Color.echoTextPrimary)
+                            Text("Sube una foto para actividades personalizadas")
+                                .font(.echoSmall)
+                                .foregroundColor(Color.echoTextSecondary)
+                        }
+                        Spacer()
+                    }
+                    
+                    // Image Picker Button (UIKit - No crashea)
+                    Button {
+                        showImagePicker = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.echoTeal.opacity(0.15))
+                                    .frame(width: 50, height: 50)
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Color.echoTeal)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Seleccionar foto")
+                                    .font(.echoSubheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color.echoTextPrimary)
+                                Text("De tu galería")
+                                    .font(.echoSmall)
+                                    .foregroundColor(Color.echoTextSecondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(Color.echoTextMuted)
+                        }
+                        .padding(16)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.echoTeal.opacity(0.2), lineWidth: 1.5)
+                        )
+                    }
+                    
+                    // Status messages
+                    if isAnalyzing {
+                        HStack {
+                            ProgressView()
+                            Text("Analizando tu emoción...")
+                                .font(.echoSmall)
+                                .foregroundColor(Color.echoTextSecondary)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.echoTeal.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                    
+                    if let emotion = detectedEmotion, !isAnalyzing {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(Color.moodGreen)
+                            Text(CapturedEmotion(emotion: emotion, timestamp: Date()).displayMessage)
+                                .font(.echoSubheadline)
+                                .foregroundColor(Color.echoTextPrimary)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.moodGreen.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                }
+                .padding(20)
+                .echoCard()
+                .padding(.horizontal, 20)
 
                 Spacer(minLength: 20)
             }
@@ -111,6 +198,137 @@ struct HomeView: View {
         .sheet(isPresented: $appState.showAddReminder) {
             AddReminderSheet()
                 .environmentObject(appState)
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(selectedImage: $selectedImage)
+        }
+        .onChange(of: selectedImage) { _, newImage in
+            guard let image = newImage else { return }
+            Task {
+                await analyzeImage(image)
+            }
+        }
+    }
+    
+    
+    // MARK: - Image Analysis
+    
+    private func analyzeImage(_ image: UIImage) async {
+        await MainActor.run {
+            isAnalyzing = true
+            detectedEmotion = nil
+        }
+        
+        do {
+            // Detectar emoción usando Vision
+            let emotionService = EmotionDetectionService()
+            let emotion = try await emotionService.detectEmotion(from: image)
+            
+            await MainActor.run {
+                self.detectedEmotion = emotion
+                self.isAnalyzing = false
+                
+                // Guardar en estado global
+                let captured = CapturedEmotion(
+                    emotion: emotion,
+                    capturedImage: image,
+                    timestamp: Date()
+                )
+                self.appState.todayEmotion = captured
+                
+                print("🎭 Emoción detectada: \(emotion)")
+            }
+            
+            // Generar actividades automáticamente
+            await generateActivitiesForEmotion(emotion)
+            
+        } catch {
+            await MainActor.run {
+                self.detectedEmotion = "Neutral"
+                self.isAnalyzing = false
+                print("❌ Error: \(error.localizedDescription)")
+            }
+            
+            // Generar actividades de fallback
+            await generateActivitiesForEmotion("Neutral")
+        }
+    }
+    
+    /// Genera actividades usando ChatGPT basadas en la emoción detectada
+    private func generateActivitiesForEmotion(_ emotion: String) async {
+        // Marcar que estamos generando
+        await MainActor.run {
+            self.appState.isGeneratingActivities = true
+        }
+        
+        let apiKey = ""
+        let chatGPTService = ChatGPTService(apiKey: apiKey)
+        
+        do {
+            let response = try await chatGPTService.generateAdviceAndActivities(
+                for: emotion,
+                userName: appState.userName
+            )
+            
+            await MainActor.run {
+                // Convertir SuggestedActivity a Activity y guardar en AppState
+                self.appState.todayActivities = response.activities.map { $0.toActivity() }
+                self.appState.isGeneratingActivities = false
+                
+                print("✅ Actividades generadas: \(self.appState.todayActivities.count)")
+                self.appState.todayActivities.forEach { activity in
+                    print("  - \(activity.title)")
+                }
+                
+                // También generar algunos recordatorios simples
+                self.generateRemindersForEmotion(emotion)
+            }
+            
+        } catch {
+            print("❌ Error generando actividades: \(error)")
+            
+            await MainActor.run {
+                self.appState.isGeneratingActivities = false
+                // Generar recordatorios al menos
+                self.generateRemindersForEmotion(emotion)
+            }
+        }
+    }
+    
+    /// Genera recordatorios simples (complementarios a las actividades)
+    private func generateRemindersForEmotion(_ emotion: String) {
+        let lower = emotion.lowercased()
+        var suggestions: [Reminder] = []
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+
+        func makeReminder(title: String, detail: String, icon: String, color: Color) -> Reminder {
+            let timeString = formatter.string(from: now)
+            return Reminder(
+                title: title,
+                detail: detail,
+                time: timeString,
+                timeDate: now,
+                icon: icon,
+                accentColor: color
+            )
+        }
+
+        if lower.contains("feliz") || lower.contains("alegr") {
+            suggestions.append(makeReminder(title: "Llama a un ser querido", detail: "Comparte tu buen momento", icon: "phone.fill", color: Color.moodGreen))
+        } else if lower.contains("triste") || lower.contains("baj") {
+            suggestions.append(makeReminder(title: "Respira profundo", detail: "Ejercicio de respiración 3 minutos", icon: "lungs.fill", color: Color.echoAmber))
+        } else {
+            suggestions.append(makeReminder(title: "Hidratación", detail: "Bebe un vaso de agua", icon: "drop.fill", color: Color.echoTeal))
+        }
+
+        // Evitar duplicados simples
+        for r in suggestions {
+            let exists = appState.reminders.contains { $0.title == r.title && abs($0.timeDate.timeIntervalSince(now)) < 60 }
+            if !exists {
+                appState.reminders.append(r)
+            }
         }
     }
 }
@@ -168,7 +386,7 @@ struct PostItMessage: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "note.text")
                 .font(.system(size: 22))
-                .foregroundColor(Color.echoAmber)
+                .foregroundColor(Color.echoTeal)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Mensaje del día")
@@ -187,11 +405,11 @@ struct PostItMessage: View {
             Color(hex: "#FFFBEC")
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.echoAmber.opacity(0.3), lineWidth: 1.5)
+                        .stroke(Color.echoTeal.opacity(0.3), lineWidth: 1.5)
                 )
         )
         .cornerRadius(18)
-        .shadow(color: Color.echoAmber.opacity(0.15), radius: 10, x: 0, y: 4)
+        .shadow(color: Color.echoTeal.opacity(0.15), radius: 10, x: 0, y: 4)
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5)) {
                 unfolded = true
@@ -216,7 +434,6 @@ struct ReminderCard: View {
                         .foregroundColor(reminder.accentColor)
                 }
                 Spacer()
-                // Checkmark
                 Button {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                         reminder.isCompleted.toggle()
@@ -302,85 +519,6 @@ struct CaregiverMessageBanner: View {
     }
 }
 
-// MARK: - Mood Logger Card
-struct MoodLoggerCard: View {
-    @EnvironmentObject var appState: AppState
-    @State private var selectedMood: EmotionalEntry.Mood? = nil
-    @State private var note: String = ""
-    @State private var logged = false
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Text("¿Cómo te sentiste hoy?")
-                .font(.echoSubheadline)
-                .foregroundColor(Color.echoTextPrimary)
-
-            HStack(spacing: 20) {
-                ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            selectedMood = mood
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Text(mood.emoji)
-                                .font(.system(size: 36))
-                                .scaleEffect(selectedMood == mood ? 1.2 : 1.0)
-                            Text(mood.rawValue)
-                                .font(.echoSmall)
-                                .foregroundColor(selectedMood == mood ? mood.color : Color.echoTextMuted)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(selectedMood == mood ? mood.color : Color.clear, lineWidth: 2)
-                        )
-                    }
-                }
-            }
-
-            if selectedMood != nil && !logged {
-                TextField("Escribe una pequeña nota sobre tu día...", text: $note)
-                    .font(.echoBody)
-                    .padding(12)
-                    .background(Color.echoTextMuted.opacity(0.1))
-                    .cornerRadius(10)
-            }
-
-            if let mood = selectedMood, !logged {
-                Button {
-                    withAnimation {
-                        appState.emotionalEntries.append(
-                            EmotionalEntry(date: Date(), mood: mood, note: note.isEmpty ? nil : note)
-                        )
-                        logged = true
-                    }
-                } label: {
-                    Text("Guardar")
-                        .font(.echoCaption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.echoTeal)
-                        .cornerRadius(14)
-                }
-            }
-
-            if logged {
-                Label("¡Registrado con amor!", systemImage: "checkmark.circle.fill")
-                    .font(.echoCaption)
-                    .foregroundColor(Color.moodGreen)
-            }
-        }
-        .padding(20)
-        .echoCard()
-    }
-}
-
 // MARK: - Add Reminder Sheet
 struct AddReminderSheet: View {
     @EnvironmentObject var appState: AppState
@@ -437,3 +575,8 @@ struct AddReminderSheet: View {
         presentationMode.wrappedValue.dismiss()
     }
 }
+
+extension Notification.Name {
+    static let newEmotionCaptured = Notification.Name("NewEmotionCapturedNotification")
+}
+
