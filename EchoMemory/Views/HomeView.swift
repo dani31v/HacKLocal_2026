@@ -51,9 +51,6 @@ struct HomeView: View {
                     .scaleEffect(postItAppeared ? 1 : 0.9)
                     .padding(.horizontal, 20)
                     
-                // MARK: - Today's Mood Logger
-                MoodLoggerCard()
-                    .padding(.horizontal, 20)
 
                 // MARK: - Reminders
                 VStack(alignment: .leading, spacing: 12) {
@@ -75,7 +72,12 @@ struct HomeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             let sortedIndices = appState.reminders.indices.sorted {
-                                !appState.reminders[$0].isCompleted && appState.reminders[$1].isCompleted
+                                let r1 = appState.reminders[$0]
+                                let r2 = appState.reminders[$1]
+                                if r1.isCompleted != r2.isCompleted {
+                                    return !r1.isCompleted && r2.isCompleted
+                                }
+                                return r1.timeDate < r2.timeDate
                             }
                             ForEach(sortedIndices, id: \.self) { index in
                                 ReminderCard(reminder: $appState.reminders[index])
@@ -90,6 +92,10 @@ struct HomeView: View {
                     CaregiverMessageBanner()
                         .padding(.horizontal, 20)
                 }
+
+                // MARK: - Today's Mood Logger
+                MoodLoggerCard()
+                    .padding(.horizontal, 20)
 
                 Spacer(minLength: 20)
             }
@@ -305,7 +311,7 @@ struct MoodLoggerCard: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Text("¿Cómo te sientes hoy?")
+            Text("¿Cómo te sentiste hoy?")
                 .font(.echoSubheadline)
                 .foregroundColor(Color.echoTextPrimary)
 
@@ -420,6 +426,7 @@ struct AddReminderSheet: View {
             title: title,
             detail: detail,
             time: timeString,
+            timeDate: time,
             icon: "bell.fill",
             accentColor: Color.echoTeal
         )

@@ -94,18 +94,19 @@ struct Reminder: Identifiable {
     var title: String
     var detail: String
     var time: String
+    var timeDate: Date
     var icon: String
     var isCompleted: Bool = false
     var accentColor: Color
 
     static func sampleData() -> [Reminder] {
-        [
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return [
             Reminder(title: "Medicamento", detail: "Tomar pastilla azul con agua",
-                     time: "9:00 AM", icon: "pills.fill", accentColor: Color("AccentBlue")),
+                     time: "9:00 AM", timeDate: formatter.date(from: "9:00 AM") ?? Date(), icon: "pills.fill", accentColor: Color.echoMint),
             Reminder(title: "Cita médica", detail: "Con el Dr. Ramírez en el consultorio",
-                     time: "2:00 PM", icon: "stethoscope", accentColor: Color("AccentGreen")),
-            Reminder(title: "Llamada", detail: "Tu hija te llamará hoy",
-                     time: "4:30 PM", icon: "phone.fill", accentColor: Color("AccentPeach"))
+                     time: "2:00 PM", timeDate: formatter.date(from: "2:00 PM") ?? Date(), icon: "stethoscope", accentColor: Color.echoCoral)
         ]
     }
 }
