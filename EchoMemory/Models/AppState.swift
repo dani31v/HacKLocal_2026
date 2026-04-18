@@ -6,7 +6,7 @@ class AppState: ObservableObject {
     @Published var userName: String = "Carmen"
     @Published var userAge: Int = 47
     @Published var todayMessage: String = "Hoy vas a tomar tu medicamento a las 9 AM."
-    @Published var caregiverName: String = "Tu hija"
+    @Published var caregiverName: String = "Tu hija Marcela"
     @Published var caregiverEmoji: String = "👩🏽"
     @Published var hasUnreadMessage: Bool = true
     @Published var emotionalEntries: [EmotionalEntry] = EmotionalEntry.sampleData()

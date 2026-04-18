@@ -244,7 +244,7 @@ struct ReceivedMessageCard: View {
                     .font(.system(size: 28))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(message.senderName) te respondió")
+                    Text(message.isFromCaregiver ? "\(message.senderName) te respondió" : "Enviaste un audio")
                         .font(.echoCaption)
                         .fontWeight(.semibold)
                         .foregroundColor(Color.echoTextPrimary)

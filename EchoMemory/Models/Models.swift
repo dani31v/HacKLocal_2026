@@ -48,7 +48,7 @@ struct EmotionalEntry: Identifiable, Codable {
             "Salí a caminar", "Día muy tranquilo", "Escuché música de antes",
             "Recordé a mi mamá", "Dormí muy bien"
         ]
-        for i in (0..<30).reversed() {
+        for i in (1..<30).reversed() {
             guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
             let randomMood: Mood = [.great, .great, .neutral, .sad, .great].randomElement()!
             let hasNote = Bool.random()

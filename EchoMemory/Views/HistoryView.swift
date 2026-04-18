@@ -192,22 +192,19 @@ struct EmotionLineChart: View {
                         ForEach(entries.indices, id: \.self) { i in
                             let entry = entries[i]
                             let point = points[i]
-                            Circle()
-                                .fill(entry.mood.color)
-                                .frame(width: 12, height: 12)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                            Text(entry.mood.emoji)
+                                .font(.system(size: 20))
                                 .position(point)
                                 .opacity(appeared ? 1 : 0)
                                 .animation(.spring(response: 0.5).delay(Double(i) * 0.08), value: appeared)
                         }
                     } else {
-                        // For larger datasets (e.g. Month), show a dot for the current day only or smaller dots
+                        // For larger datasets (e.g. Month) show smaller emojis
                         ForEach(entries.indices, id: \.self) { i in
                             let entry = entries[i]
                             let point = points[i]
-                            Circle()
-                                .fill(entry.mood.color)
-                                .frame(width: 6, height: 6)
+                            Text(entry.mood.emoji)
+                                .font(.system(size: 14))
                                 .position(point)
                                 .opacity(appeared ? 1 : 0)
                                 .animation(.spring(response: 0.5).delay(Double(i) * 0.02), value: appeared)
