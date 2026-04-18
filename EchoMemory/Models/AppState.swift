@@ -14,6 +14,7 @@ class AppState: ObservableObject {
     @Published var reminders: [Reminder] = Reminder.sampleData()
     @Published var voiceMessages: [VoiceMessage] = VoiceMessage.sampleMessages()
     @Published var showWelcomeAnimation: Bool = true
+    @Published var showAddReminder: Bool = false
 
     enum Tab: String, CaseIterable {
         case home = "house.fill"

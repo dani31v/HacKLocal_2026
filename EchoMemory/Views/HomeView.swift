@@ -52,17 +52,25 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
                     
                 // MARK: - Today's Mood Logger
-                if !appState.emotionalEntries.contains(where: { Calendar.current.isDateInToday($0.date) }) {
-                    MoodLoggerCard()
-                        .padding(.horizontal, 20)
-                }
+                MoodLoggerCard()
+                    .padding(.horizontal, 20)
 
                 // MARK: - Reminders
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recordatorios de hoy")
-                        .font(.echoSubheadline)
-                        .foregroundColor(Color.echoTextPrimary)
-                        .padding(.horizontal, 20)
+                    HStack {
+                        Text("Recordatorios de hoy")
+                            .font(.echoSubheadline)
+                            .foregroundColor(Color.echoTextPrimary)
+                        Spacer()
+                        Button {
+                            appState.showAddReminder = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(Color.echoTeal)
+                        }
+                    }
+                    .padding(.horizontal, 20)
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
@@ -93,6 +101,10 @@ struct HomeView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.4)) {
                 postItAppeared = true
             }
+        }
+        .sheet(isPresented: $appState.showAddReminder) {
+            AddReminderSheet()
+                .environmentObject(appState)
         }
     }
 }
@@ -360,5 +372,61 @@ struct MoodLoggerCard: View {
         }
         .padding(20)
         .echoCard()
+    }
+}
+
+// MARK: - Add Reminder Sheet
+struct AddReminderSheet: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.presentationMode) var presentationMode
+    
+    @State private var title: String = ""
+    @State private var detail: String = ""
+    @State private var time: Date = Date()
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Detalles del recordatorio")) {
+                    TextField("Título (ej. Pastilla)", text: $title)
+                    TextField("Descripción (opcional)", text: $detail)
+                }
+                
+                Section(header: Text("Hora")) {
+                    DatePicker("Selecciona la hora", selection: $time, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(GraphicalDatePickerStyle())
+                }
+            }
+            .navigationTitle("Nuevo Recordatorio")
+            .navigationBarItems(
+                leading: Button("Cancelar") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Guardar") {
+                    saveReminder()
+                }
+                .disabled(title.isEmpty)
+                .font(.headline)
+            )
+        }
+    }
+    
+    private func saveReminder() {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        let timeString = formatter.string(from: time)
+        
+        let newReminder = Reminder(
+            title: title,
+            detail: detail,
+            time: timeString,
+            icon: "bell.fill",
+            accentColor: Color.echoTeal
+        )
+        
+        withAnimation {
+            appState.reminders.append(newReminder)
+        }
+        presentationMode.wrappedValue.dismiss()
     }
 }
