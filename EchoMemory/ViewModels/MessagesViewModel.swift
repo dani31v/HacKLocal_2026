@@ -24,10 +24,19 @@ class MessagesViewModel: ObservableObject {
 
     func startRecording() {
         // Request microphone permission
-        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
-            DispatchQueue.main.async {
-                guard granted else { return }
-                self?.beginRecording()
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard granted else { return }
+                    self?.beginRecording()
+                }
+            }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard granted else { return }
+                    self?.beginRecording()
+                }
             }
         }
     }

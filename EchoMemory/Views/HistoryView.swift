@@ -16,7 +16,6 @@ struct HistoryView: View {
 
     var visibleEntries: [EmotionalEntry] {
         switch selectedPeriod {
-        case .day: return Array(appState.emotionalEntries.suffix(1))
         case .week: return Array(appState.emotionalEntries.suffix(7))
         case .month: return Array(appState.emotionalEntries.suffix(30))
         }
