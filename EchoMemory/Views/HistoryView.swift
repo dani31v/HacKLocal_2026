@@ -131,33 +131,14 @@ struct EmotionLineChart: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Y-Axis Legend
-            VStack(alignment: .trailing) {
-                Text(EmotionalEntry.Mood.great.rawValue)
-                    .font(.echoSmall)
-                    .foregroundColor(EmotionalEntry.Mood.great.color)
-                Spacer()
-                Text(EmotionalEntry.Mood.neutral.rawValue)
-                    .font(.echoSmall)
-                    .foregroundColor(EmotionalEntry.Mood.neutral.color)
-                Spacer()
-                Text(EmotionalEntry.Mood.sad.rawValue)
-                    .font(.echoSmall)
-                    .foregroundColor(EmotionalEntry.Mood.sad.color)
-            }
-            .padding(.vertical, 10)
-            .padding(.bottom, 24)
-            .frame(width: 50)
-            
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 GeometryReader { geo in
-                    let width = geo.size.width - 16
+                    let width = geo.size.width - 32
                     let height = geo.size.height - 40
                     let stepX = entries.count > 1 ? width / CGFloat(entries.count - 1) : width
                     let points: [CGPoint] = entries.enumerated().map { i, entry in
                         CGPoint(
-                            x: 8 + CGFloat(i) * stepX,
+                            x: 16 + CGFloat(i) * stepX,
                             y: 10 + (1 - moodValue(entry.mood)) * (height - 10)
                         )
                     }
@@ -167,8 +148,8 @@ struct EmotionLineChart: View {
                         ForEach([0, 1, 2], id: \.self) { i in
                             let y = 10 + CGFloat(i) * (height - 10) / 2
                             Path { path in
-                                path.move(to: CGPoint(x: 8, y: y))
-                                path.addLine(to: CGPoint(x: 8 + width, y: y))
+                                path.move(to: CGPoint(x: 16, y: y))
+                                path.addLine(to: CGPoint(x: 16 + width, y: y))
                             }
                             .stroke(Color.echoTextMuted.opacity(0.1), lineWidth: 1)
                         }
@@ -247,26 +228,15 @@ struct EmotionLineChart: View {
                                     .foregroundColor(Color.echoTextMuted)
                                     .frame(maxWidth: .infinity)
                             } else {
-                                let dayInt = Calendar.current.component(.day, from: entries[i].date)
-                                if dayInt % 5 == 0 || i == entries.count - 1 || i == 0 {
-                                    Text("\(dayInt)")
-                                        .font(.echoSmall)
-                                        .foregroundColor(Color.echoTextMuted)
-                                        .frame(maxWidth: .infinity)
-                                } else {
-                                    Spacer()
-                                        .frame(maxWidth: .infinity)
-                                }
+                                Spacer()
+                                    .frame(maxWidth: .infinity)
                             }
                         }
                     }
                     .position(x: geo.size.width / 2, y: geo.size.height - 12)
-                }
-            }
         }
         .padding(.vertical, 16)
-        .padding(.trailing, 16)
-        .padding(.leading, 8)
+        .padding(.horizontal, 0)
     }
 }
 
@@ -298,7 +268,6 @@ struct EntryRow: View {
             // Content
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(entry.mood.emoji)
                     Text(entry.mood.rawValue)
                         .font(.echoCaption)
                         .fontWeight(.semibold)
