@@ -234,6 +234,7 @@ struct EmotionLineChart: View {
                         }
                     }
                     .position(x: geo.size.width / 2, y: geo.size.height - 12)
+                }
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 0)
