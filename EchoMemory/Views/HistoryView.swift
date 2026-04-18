@@ -6,7 +6,6 @@ struct HistoryView: View {
     @State private var chartAppeared = false
 
     enum Period: String, CaseIterable {
-        case day = "Día"
         case week = "Semana"
         case month = "Mes"
     }
@@ -23,18 +22,7 @@ struct HistoryView: View {
         }
     }
 
-    var insightMessage: String {
-        guard let today = todayEntry, let yesterday = appState.emotionalEntries.dropLast().last else {
-            return "Registra cómo te sientes cada día."
-        }
-        if today.mood == .great && yesterday.mood != .great {
-            return "Hoy te sentiste mejor que ayer. 💚"
-        } else if today.mood == .sad {
-            return "Hoy fue un día difícil. Está bien. 💜"
-        } else {
-            return "Llevas \(appState.emotionalEntries.filter { $0.mood == .great }.count) días sintiéndote bien."
-        }
-    }
+
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,24 +66,6 @@ struct HistoryView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
-                    // MARK: - Insight Banner
-                    HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18))
-                            .foregroundColor(Color.echoAmber)
-                        Text(insightMessage)
-                            .font(.echoBody)
-                            .foregroundColor(Color.echoTextPrimary)
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(Color(hex: "#FFFBEC"))
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.echoAmber.opacity(0.3), lineWidth: 1)
-                    )
-                    .padding(.horizontal, 20)
 
                     // MARK: - Emotion Line Chart
                     EmotionLineChart(entries: visibleEntries, appeared: chartAppeared)
@@ -119,11 +89,7 @@ struct HistoryView: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    // MARK: - Today's Mood Logger
-                    if selectedPeriod == .day {
-                        MoodLoggerCard()
-                            .padding(.horizontal, 20)
-                    }
+
 
                     // MARK: - Entry list
                     VStack(alignment: .leading, spacing: 12) {
@@ -253,14 +219,22 @@ struct EmotionLineChart: View {
                 // Day labels at bottom
                 HStack(spacing: 0) {
                     ForEach(entries.indices, id: \.self) { i in
-                        if entries.count <= 7 || i % 5 == 0 || i == entries.count - 1 {
-                            Text(entries.count <= 7 ? entries[i].date.shortDay : "\(Calendar.current.component(.day, from: entries[i].date))")
+                        if entries.count <= 7 {
+                            Text(entries[i].date.shortDay)
                                 .font(.echoSmall)
                                 .foregroundColor(Color.echoTextMuted)
                                 .frame(maxWidth: .infinity)
                         } else {
-                            Spacer()
-                                .frame(maxWidth: .infinity)
+                            let dayInt = Calendar.current.component(.day, from: entries[i].date)
+                            if dayInt % 5 == 0 || i == entries.count - 1 || i == 0 {
+                                Text("\(dayInt)")
+                                    .font(.echoSmall)
+                                    .foregroundColor(Color.echoTextMuted)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Spacer()
+                                    .frame(maxWidth: .infinity)
+                            }
                         }
                     }
                 }
@@ -272,75 +246,7 @@ struct EmotionLineChart: View {
     }
 }
 
-// MARK: - Mood Logger Card
-struct MoodLoggerCard: View {
-    @EnvironmentObject var appState: AppState
-    @State private var selectedMood: EmotionalEntry.Mood? = nil
-    @State private var logged = false
 
-    var body: some View {
-        VStack(spacing: 14) {
-            Text("¿Cómo te sientes hoy?")
-                .font(.echoSubheadline)
-                .foregroundColor(Color.echoTextPrimary)
-
-            HStack(spacing: 20) {
-                ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            selectedMood = mood
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Text(mood.emoji)
-                                .font(.system(size: 36))
-                                .scaleEffect(selectedMood == mood ? 1.2 : 1.0)
-                            Text(mood.rawValue)
-                                .font(.echoSmall)
-                                .foregroundColor(selectedMood == mood ? mood.color : Color.echoTextMuted)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(selectedMood == mood ? mood.color : Color.clear, lineWidth: 2)
-                        )
-                    }
-                }
-            }
-
-            if let mood = selectedMood, !logged {
-                Button {
-                    withAnimation {
-                        appState.emotionalEntries.append(
-                            EmotionalEntry(date: Date(), mood: mood)
-                        )
-                        logged = true
-                    }
-                } label: {
-                    Text("Guardar")
-                        .font(.echoCaption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.echoTeal)
-                        .cornerRadius(14)
-                }
-            }
-
-            if logged {
-                Label("¡Registrado con amor!", systemImage: "checkmark.circle.fill")
-                    .font(.echoCaption)
-                    .foregroundColor(Color.moodGreen)
-            }
-        }
-        .padding(20)
-        .echoCard()
-    }
-}
 
 // MARK: - Entry Row
 struct EntryRow: View {
@@ -350,13 +256,13 @@ struct EntryRow: View {
         HStack(spacing: 14) {
             // Date
             VStack(spacing: 2) {
-                Text(entry.date.shortDay)
+                Text(Calendar.current.isDateInToday(entry.date) ? "Hoy" : entry.date.shortDay)
                     .font(.echoSmall)
-                    .foregroundColor(Color.echoTextMuted)
+                    .foregroundColor(Calendar.current.isDateInToday(entry.date) ? Color.echoTeal : Color.echoTextMuted)
                 Text(Calendar.current.component(.day, from: entry.date).description)
                     .font(.echoCaption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color.echoTextPrimary)
+                    .fontWeight(Calendar.current.isDateInToday(entry.date) ? .bold : .semibold)
+                    .foregroundColor(Calendar.current.isDateInToday(entry.date) ? Color.echoTeal : Color.echoTextPrimary)
             }
             .frame(width: 36)
 

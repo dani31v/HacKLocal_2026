@@ -50,6 +50,12 @@ struct HomeView: View {
                     .opacity(postItAppeared ? 1 : 0)
                     .scaleEffect(postItAppeared ? 1 : 0.9)
                     .padding(.horizontal, 20)
+                    
+                // MARK: - Today's Mood Logger
+                if !appState.emotionalEntries.contains(where: { Calendar.current.isDateInToday($0.date) }) {
+                    MoodLoggerCard()
+                        .padding(.horizontal, 20)
+                }
 
                 // MARK: - Reminders
                 VStack(alignment: .leading, spacing: 12) {
@@ -275,5 +281,84 @@ struct CaregiverMessageBanner: View {
                 appState.hasUnreadMessage = false
             }
         }
+    }
+}
+
+// MARK: - Mood Logger Card
+struct MoodLoggerCard: View {
+    @EnvironmentObject var appState: AppState
+    @State private var selectedMood: EmotionalEntry.Mood? = nil
+    @State private var note: String = ""
+    @State private var logged = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Text("¿Cómo te sientes hoy?")
+                .font(.echoSubheadline)
+                .foregroundColor(Color.echoTextPrimary)
+
+            HStack(spacing: 20) {
+                ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            selectedMood = mood
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(mood.emoji)
+                                .font(.system(size: 36))
+                                .scaleEffect(selectedMood == mood ? 1.2 : 1.0)
+                            Text(mood.rawValue)
+                                .font(.echoSmall)
+                                .foregroundColor(selectedMood == mood ? mood.color : Color.echoTextMuted)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(selectedMood == mood ? mood.color : Color.clear, lineWidth: 2)
+                        )
+                    }
+                }
+            }
+
+            if selectedMood != nil && !logged {
+                TextField("Escribe una pequeña nota sobre tu día...", text: $note)
+                    .font(.echoBody)
+                    .padding(12)
+                    .background(Color.echoTextMuted.opacity(0.1))
+                    .cornerRadius(10)
+            }
+
+            if let mood = selectedMood, !logged {
+                Button {
+                    withAnimation {
+                        appState.emotionalEntries.append(
+                            EmotionalEntry(date: Date(), mood: mood, note: note.isEmpty ? nil : note)
+                        )
+                        logged = true
+                    }
+                } label: {
+                    Text("Guardar")
+                        .font(.echoCaption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.echoTeal)
+                        .cornerRadius(14)
+                }
+            }
+
+            if logged {
+                Label("¡Registrado con amor!", systemImage: "checkmark.circle.fill")
+                    .font(.echoCaption)
+                    .foregroundColor(Color.moodGreen)
+            }
+        }
+        .padding(20)
+        .echoCard()
     }
 }
