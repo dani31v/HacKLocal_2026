@@ -50,18 +50,37 @@ struct HomeView: View {
                     .opacity(postItAppeared ? 1 : 0)
                     .scaleEffect(postItAppeared ? 1 : 0.9)
                     .padding(.horizontal, 20)
+                    
 
                 // MARK: - Reminders
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recordatorios de hoy")
-                        .font(.echoSubheadline)
-                        .foregroundColor(Color.echoTextPrimary)
-                        .padding(.horizontal, 20)
+                    HStack {
+                        Text("Recordatorios de hoy")
+                            .font(.echoSubheadline)
+                            .foregroundColor(Color.echoTextPrimary)
+                        Spacer()
+                        Button {
+                            appState.showAddReminder = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(Color.echoTeal)
+                        }
+                    }
+                    .padding(.horizontal, 20)
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(appState.reminders) { reminder in
-                                ReminderCard(reminder: reminder)
+                            let sortedIndices = appState.reminders.indices.sorted {
+                                let r1 = appState.reminders[$0]
+                                let r2 = appState.reminders[$1]
+                                if r1.isCompleted != r2.isCompleted {
+                                    return !r1.isCompleted && r2.isCompleted
+                                }
+                                return r1.timeDate < r2.timeDate
+                            }
+                            ForEach(sortedIndices, id: \.self) { index in
+                                ReminderCard(reminder: $appState.reminders[index])
                             }
                         }
                         .padding(.horizontal, 20)
@@ -74,6 +93,10 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                 }
 
+                // MARK: - Today's Mood Logger
+                MoodLoggerCard()
+                    .padding(.horizontal, 20)
+
                 Spacer(minLength: 20)
             }
         }
@@ -84,6 +107,10 @@ struct HomeView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.4)) {
                 postItAppeared = true
             }
+        }
+        .sheet(isPresented: $appState.showAddReminder) {
+            AddReminderSheet()
+                .environmentObject(appState)
         }
     }
 }
@@ -175,7 +202,7 @@ struct PostItMessage: View {
 
 // MARK: - Reminder Card
 struct ReminderCard: View {
-    @State var reminder: Reminder
+    @Binding var reminder: Reminder
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -272,5 +299,141 @@ struct CaregiverMessageBanner: View {
                 appState.hasUnreadMessage = false
             }
         }
+    }
+}
+
+// MARK: - Mood Logger Card
+struct MoodLoggerCard: View {
+    @EnvironmentObject var appState: AppState
+    @State private var selectedMood: EmotionalEntry.Mood? = nil
+    @State private var note: String = ""
+    @State private var logged = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Text("¿Cómo te sentiste hoy?")
+                .font(.echoSubheadline)
+                .foregroundColor(Color.echoTextPrimary)
+
+            HStack(spacing: 20) {
+                ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            selectedMood = mood
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(mood.emoji)
+                                .font(.system(size: 36))
+                                .scaleEffect(selectedMood == mood ? 1.2 : 1.0)
+                            Text(mood.rawValue)
+                                .font(.echoSmall)
+                                .foregroundColor(selectedMood == mood ? mood.color : Color.echoTextMuted)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(selectedMood == mood ? mood.color : Color.clear, lineWidth: 2)
+                        )
+                    }
+                }
+            }
+
+            if selectedMood != nil && !logged {
+                TextField("Escribe una pequeña nota sobre tu día...", text: $note)
+                    .font(.echoBody)
+                    .padding(12)
+                    .background(Color.echoTextMuted.opacity(0.1))
+                    .cornerRadius(10)
+            }
+
+            if let mood = selectedMood, !logged {
+                Button {
+                    withAnimation {
+                        appState.emotionalEntries.append(
+                            EmotionalEntry(date: Date(), mood: mood, note: note.isEmpty ? nil : note)
+                        )
+                        logged = true
+                    }
+                } label: {
+                    Text("Guardar")
+                        .font(.echoCaption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.echoTeal)
+                        .cornerRadius(14)
+                }
+            }
+
+            if logged {
+                Label("¡Registrado con amor!", systemImage: "checkmark.circle.fill")
+                    .font(.echoCaption)
+                    .foregroundColor(Color.moodGreen)
+            }
+        }
+        .padding(20)
+        .echoCard()
+    }
+}
+
+// MARK: - Add Reminder Sheet
+struct AddReminderSheet: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.presentationMode) var presentationMode
+    
+    @State private var title: String = ""
+    @State private var detail: String = ""
+    @State private var time: Date = Date()
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Detalles del recordatorio")) {
+                    TextField("Título (ej. Pastilla)", text: $title)
+                    TextField("Descripción (opcional)", text: $detail)
+                }
+                
+                Section(header: Text("Hora")) {
+                    DatePicker("Selecciona la hora", selection: $time, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(GraphicalDatePickerStyle())
+                }
+            }
+            .navigationTitle("Nuevo Recordatorio")
+            .navigationBarItems(
+                leading: Button("Cancelar") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Guardar") {
+                    saveReminder()
+                }
+                .disabled(title.isEmpty)
+                .font(.headline)
+            )
+        }
+    }
+    
+    private func saveReminder() {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        let timeString = formatter.string(from: time)
+        
+        let newReminder = Reminder(
+            title: title,
+            detail: detail,
+            time: timeString,
+            timeDate: time,
+            icon: "bell.fill",
+            accentColor: Color.echoTeal
+        )
+        
+        withAnimation {
+            appState.reminders.append(newReminder)
+        }
+        presentationMode.wrappedValue.dismiss()
     }
 }

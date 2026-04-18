@@ -8,7 +8,6 @@ struct PhotosView: View {
     enum PhotoFilter: String, CaseIterable {
         case day = "Día"
         case week = "Semana"
-        case emotionMap = "Mapa emocional"
     }
 
     var filteredPhotos: [PhotoMemory] {
@@ -16,8 +15,6 @@ struct PhotosView: View {
         case .day:
             return appState.photoMemories.filter { Calendar.current.isDateInToday($0.date) }
         case .week:
-            return appState.photoMemories
-        case .emotionMap:
             return appState.photoMemories
         }
     }
@@ -68,19 +65,15 @@ struct PhotosView: View {
             .padding(.bottom, 16)
 
             // MARK: - Content
-            if selectedFilter == .emotionMap {
-                EmotionMapView()
-            } else {
-                ScrollView(showsIndicators: false) {
-                    if filteredPhotos.isEmpty {
-                        EmptyPhotosState()
-                            .padding(.top, 60)
-                    } else {
-                        PhotoGrid(photos: filteredPhotos, selectedMemory: $selectedMemory)
-                            .padding(.horizontal, 20)
-                    }
-                    Spacer(minLength: 20)
+            ScrollView(showsIndicators: false) {
+                if filteredPhotos.isEmpty {
+                    EmptyPhotosState()
+                        .padding(.top, 60)
+                } else {
+                    PhotoGrid(photos: filteredPhotos, selectedMemory: $selectedMemory)
+                        .padding(.horizontal, 20)
                 }
+                Spacer(minLength: 20)
             }
         }
         .sheet(item: $selectedMemory) { memory in
@@ -122,14 +115,26 @@ struct PhotoThumbnail: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Photo placeholder (replace with actual image)
-            RoundedRectangle(cornerRadius: 16)
-                .fill(photoBackground)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(
-                    Image(systemName: photo.imageName)
-                        .font(.system(size: 32))
-                        .foregroundColor(.white.opacity(0.85))
-                )
+            Group {
+                if photo.imageName.starts(with: "http"), let url = URL(string: photo.imageName) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 16).fill(photoBackground)
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(photoBackground)
+                        .overlay(
+                            Image(systemName: photo.imageName)
+                                .font(.system(size: 32))
+                                .foregroundColor(.white.opacity(0.85))
+                        )
+                }
+            }
+            .aspectRatio(1, contentMode: .fill)
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .clipped()
 
             // Time + emoji overlay
             HStack(spacing: 4) {
@@ -183,17 +188,28 @@ struct PhotoDetailSheet: View {
 
             // Large photo
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.echoTeal, Color.echoBlue],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
+                if memory.imageName.starts(with: "http"), let url = URL(string: memory.imageName) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.gray.opacity(0.2))
+                    }
                     .frame(height: 260)
-                Image(systemName: memory.imageName)
-                    .font(.system(size: 72))
-                    .foregroundColor(.white.opacity(0.9))
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                } else {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.echoTeal, Color.echoBlue],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 260)
+                    Image(systemName: memory.imageName)
+                        .font(.system(size: 72))
+                        .foregroundColor(.white.opacity(0.9))
+                }
             }
             .padding(.horizontal, 20)
 
@@ -248,56 +264,6 @@ struct PhotoDetailSheet: View {
     }
 }
 
-// MARK: - Emotion Map View
-struct EmotionMapView: View {
-    @EnvironmentObject var appState: AppState
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                Text("Mapa emocional de la semana")
-                    .font(.echoCaption)
-                    .foregroundColor(Color.echoTextSecondary)
-                    .padding(.top, 8)
-
-                // Simple bubble grid representing emotion map
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
-                    ForEach(appState.photoMemories) { photo in
-                        VStack(spacing: 6) {
-                            Circle()
-                                .fill(photo.mood.color.opacity(0.25))
-                                .frame(width: 56, height: 56)
-                                .overlay(
-                                    Circle().stroke(photo.mood.color, lineWidth: 2)
-                                )
-                                .overlay(
-                                    Text(photo.emoji)
-                                        .font(.system(size: 24))
-                                )
-                            Text(photo.time)
-                                .font(.echoSmall)
-                                .foregroundColor(Color.echoTextMuted)
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                // Legend
-                HStack(spacing: 20) {
-                    ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
-                        HStack(spacing: 6) {
-                            Circle().fill(mood.color).frame(width: 10, height: 10)
-                            Text(mood.rawValue).font(.echoSmall).foregroundColor(Color.echoTextSecondary)
-                        }
-                    }
-                }
-                .padding(.top, 8)
-
-                Spacer(minLength: 20)
-            }
-        }
-    }
-}
 
 // MARK: - Filter Pill
 struct FilterPill: View {

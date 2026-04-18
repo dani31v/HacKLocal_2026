@@ -6,7 +6,6 @@ struct HistoryView: View {
     @State private var chartAppeared = false
 
     enum Period: String, CaseIterable {
-        case day = "Día"
         case week = "Semana"
         case month = "Mes"
     }
@@ -15,18 +14,14 @@ struct HistoryView: View {
         appState.emotionalEntries.last
     }
 
-    var insightMessage: String {
-        guard let today = todayEntry, let yesterday = appState.emotionalEntries.dropLast().last else {
-            return "Registra cómo te sientes cada día."
-        }
-        if today.mood == .great && yesterday.mood != .great {
-            return "Hoy te sentiste mejor que ayer. 💚"
-        } else if today.mood == .sad {
-            return "Hoy fue un día difícil. Está bien. 💜"
-        } else {
-            return "Llevas \(appState.emotionalEntries.filter { $0.mood == .great }.count) días sintiéndote bien."
+    var visibleEntries: [EmotionalEntry] {
+        switch selectedPeriod {
+        case .week: return Array(appState.emotionalEntries.suffix(7))
+        case .month: return Array(appState.emotionalEntries.suffix(30))
         }
     }
+
+
 
     var body: some View {
         VStack(spacing: 0) {
@@ -70,27 +65,9 @@ struct HistoryView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
-                    // MARK: - Insight Banner
-                    HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18))
-                            .foregroundColor(Color.echoAmber)
-                        Text(insightMessage)
-                            .font(.echoBody)
-                            .foregroundColor(Color.echoTextPrimary)
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(Color(hex: "#FFFBEC"))
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.echoAmber.opacity(0.3), lineWidth: 1)
-                    )
-                    .padding(.horizontal, 20)
 
                     // MARK: - Emotion Line Chart
-                    EmotionLineChart(entries: appState.emotionalEntries, appeared: chartAppeared)
+                    EmotionLineChart(entries: visibleEntries, appeared: chartAppeared)
                         .frame(height: 180)
                         .padding(.horizontal, 20)
                         .echoCard()
@@ -111,9 +88,7 @@ struct HistoryView: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    // MARK: - Today's Mood Logger
-                    MoodLoggerCard()
-                        .padding(.horizontal, 20)
+
 
                     // MARK: - Entry list
                     VStack(alignment: .leading, spacing: 12) {
@@ -122,7 +97,7 @@ struct HistoryView: View {
                             .foregroundColor(Color.echoTextPrimary)
                             .padding(.horizontal, 20)
 
-                        ForEach(appState.emotionalEntries.reversed()) { entry in
+                        ForEach(visibleEntries.reversed()) { entry in
                             EntryRow(entry: entry)
                                 .padding(.horizontal, 20)
                         }
@@ -157,161 +132,116 @@ struct EmotionLineChart: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            GeometryReader { geo in
-                let width = geo.size.width - 32
-                let height = geo.size.height - 40
-                let stepX = entries.count > 1 ? width / CGFloat(entries.count - 1) : width
-                let points: [CGPoint] = entries.enumerated().map { i, entry in
-                    CGPoint(
-                        x: 16 + CGFloat(i) * stepX,
-                        y: 10 + (1 - moodValue(entry.mood)) * (height - 10)
-                    )
-                }
-
-                ZStack {
-                    // Grid lines
-                    ForEach([0, 1, 2], id: \.self) { i in
-                        let y = 10 + CGFloat(i) * (height - 10) / 2
-                        Path { path in
-                            path.move(to: CGPoint(x: 16, y: y))
-                            path.addLine(to: CGPoint(x: 16 + width, y: y))
-                        }
-                        .stroke(Color.echoTextMuted.opacity(0.1), lineWidth: 1)
-                    }
-
-                    // Gradient fill under line
-                    if points.count > 1 {
-                        Path { path in
-                            path.move(to: CGPoint(x: points[0].x, y: height + 10))
-                            path.addLine(to: points[0])
-                            for point in points.dropFirst() {
-                                path.addLine(to: point)
-                            }
-                            path.addLine(to: CGPoint(x: points.last!.x, y: height + 10))
-                            path.closeSubpath()
-                        }
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.echoTeal.opacity(0.2), Color.echoTeal.opacity(0.0)],
-                                startPoint: .top, endPoint: .bottom
-                            )
+                GeometryReader { geo in
+                    let width = geo.size.width - 32
+                    let height = geo.size.height - 40
+                    let stepX = entries.count > 1 ? width / CGFloat(entries.count - 1) : width
+                    let points: [CGPoint] = entries.enumerated().map { i, entry in
+                        CGPoint(
+                            x: 16 + CGFloat(i) * stepX,
+                            y: 10 + (1 - moodValue(entry.mood)) * (height - 10)
                         )
-                        .opacity(appeared ? 1 : 0)
                     }
 
-                    // Line
-                    if points.count > 1 {
-                        Path { path in
-                            path.move(to: points[0])
-                            for point in points.dropFirst() {
-                                path.addLine(to: point)
+                    ZStack {
+                        // Grid lines
+                        ForEach([0, 1, 2], id: \.self) { i in
+                            let y = 10 + CGFloat(i) * (height - 10) / 2
+                            Path { path in
+                                path.move(to: CGPoint(x: 16, y: y))
+                                path.addLine(to: CGPoint(x: 16 + width, y: y))
+                            }
+                            .stroke(Color.echoTextMuted.opacity(0.1), lineWidth: 1)
+                        }
+
+                        // Gradient fill under line
+                        if points.count > 1 {
+                            Path { path in
+                                path.move(to: CGPoint(x: points[0].x, y: height + 10))
+                                path.addLine(to: points[0])
+                                for point in points.dropFirst() {
+                                    path.addLine(to: point)
+                                }
+                                path.addLine(to: CGPoint(x: points.last!.x, y: height + 10))
+                                path.closeSubpath()
+                            }
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        EmotionalEntry.Mood.great.color.opacity(0.3),
+                                        EmotionalEntry.Mood.neutral.color.opacity(0.2),
+                                        EmotionalEntry.Mood.sad.color.opacity(0.1)
+                                    ],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                            .opacity(appeared ? 1 : 0)
+                        }
+
+                        // Line
+                        if points.count > 1 {
+                            Path { path in
+                                path.move(to: points[0])
+                                for point in points.dropFirst() {
+                                    path.addLine(to: point)
+                                }
+                            }
+                            .trim(from: 0, to: appeared ? 1 : 0)
+                            .stroke(Color.echoTextSecondary.opacity(0.4), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                            .animation(.easeInOut(duration: 1.2), value: appeared)
+                        }
+
+                        // Data points
+                        if entries.count <= 7 {
+                            ForEach(entries.indices, id: \.self) { i in
+                                let entry = entries[i]
+                                let point = points[i]
+                                Circle()
+                                    .fill(entry.mood.color)
+                                    .frame(width: 12, height: 12)
+                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                    .position(point)
+                                    .opacity(appeared ? 1 : 0)
+                                    .animation(.spring(response: 0.5).delay(Double(i) * 0.08), value: appeared)
+                            }
+                        } else {
+                            // For larger datasets (e.g. Month)
+                            ForEach(entries.indices, id: \.self) { i in
+                                let entry = entries[i]
+                                let point = points[i]
+                                Circle()
+                                    .fill(entry.mood.color)
+                                    .frame(width: 6, height: 6)
+                                    .position(point)
+                                    .opacity(appeared ? 1 : 0)
+                                    .animation(.spring(response: 0.5).delay(Double(i) * 0.02), value: appeared)
                             }
                         }
-                        .trim(from: 0, to: appeared ? 1 : 0)
-                        .stroke(Color.echoTeal, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-                        .animation(.easeInOut(duration: 1.2), value: appeared)
                     }
 
-                    // Data points
-                    ForEach(entries.indices, id: \.self) { i in
-                        let entry = entries[i]
-                        let point = points[i]
-                        Circle()
-                            .fill(entry.mood.color)
-                            .frame(width: 12, height: 12)
-                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                            .position(point)
-                            .opacity(appeared ? 1 : 0)
-                            .animation(.spring(response: 0.5).delay(Double(i) * 0.08), value: appeared)
+                    // Day labels at bottom
+                    HStack(spacing: 0) {
+                        ForEach(entries.indices, id: \.self) { i in
+                            if entries.count <= 7 {
+                                Text(entries[i].date.shortDay)
+                                    .font(.echoSmall)
+                                    .foregroundColor(Color.echoTextMuted)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Spacer()
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
+                    .position(x: geo.size.width / 2, y: geo.size.height - 12)
                 }
-
-                // Day labels at bottom
-                HStack(spacing: 0) {
-                    ForEach(entries.indices, id: \.self) { i in
-                        Text(entries[i].date.shortDay)
-                            .font(.echoSmall)
-                            .foregroundColor(Color.echoTextMuted)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .position(x: geo.size.width / 2, y: geo.size.height - 12)
-            }
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 0)
     }
 }
 
-// MARK: - Mood Logger Card
-struct MoodLoggerCard: View {
-    @EnvironmentObject var appState: AppState
-    @State private var selectedMood: EmotionalEntry.Mood? = nil
-    @State private var logged = false
 
-    var body: some View {
-        VStack(spacing: 14) {
-            Text("¿Cómo te sientes hoy?")
-                .font(.echoSubheadline)
-                .foregroundColor(Color.echoTextPrimary)
-
-            HStack(spacing: 20) {
-                ForEach(EmotionalEntry.Mood.allCases, id: \.self) { mood in
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            selectedMood = mood
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Text(mood.emoji)
-                                .font(.system(size: 36))
-                                .scaleEffect(selectedMood == mood ? 1.2 : 1.0)
-                            Text(mood.rawValue)
-                                .font(.echoSmall)
-                                .foregroundColor(selectedMood == mood ? mood.color : Color.echoTextMuted)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(selectedMood == mood ? mood.color : Color.clear, lineWidth: 2)
-                        )
-                    }
-                }
-            }
-
-            if let mood = selectedMood, !logged {
-                Button {
-                    withAnimation {
-                        appState.emotionalEntries.append(
-                            EmotionalEntry(date: Date(), mood: mood)
-                        )
-                        logged = true
-                    }
-                } label: {
-                    Text("Guardar")
-                        .font(.echoCaption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.echoTeal)
-                        .cornerRadius(14)
-                }
-            }
-
-            if logged {
-                Label("¡Registrado con amor!", systemImage: "checkmark.circle.fill")
-                    .font(.echoCaption)
-                    .foregroundColor(Color.moodGreen)
-            }
-        }
-        .padding(20)
-        .echoCard()
-    }
-}
 
 // MARK: - Entry Row
 struct EntryRow: View {
@@ -321,13 +251,13 @@ struct EntryRow: View {
         HStack(spacing: 14) {
             // Date
             VStack(spacing: 2) {
-                Text(entry.date.shortDay)
+                Text(Calendar.current.isDateInToday(entry.date) ? "Hoy" : entry.date.shortDay)
                     .font(.echoSmall)
-                    .foregroundColor(Color.echoTextMuted)
+                    .foregroundColor(Calendar.current.isDateInToday(entry.date) ? Color.echoTeal : Color.echoTextMuted)
                 Text(Calendar.current.component(.day, from: entry.date).description)
                     .font(.echoCaption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color.echoTextPrimary)
+                    .fontWeight(Calendar.current.isDateInToday(entry.date) ? .bold : .semibold)
+                    .foregroundColor(Calendar.current.isDateInToday(entry.date) ? Color.echoTeal : Color.echoTextPrimary)
             }
             .frame(width: 36)
 
@@ -339,7 +269,6 @@ struct EntryRow: View {
             // Content
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(entry.mood.emoji)
                     Text(entry.mood.rawValue)
                         .font(.echoCaption)
                         .fontWeight(.semibold)

@@ -24,10 +24,19 @@ class MessagesViewModel: ObservableObject {
 
     func startRecording() {
         // Request microphone permission
-        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
-            DispatchQueue.main.async {
-                guard granted else { return }
-                self?.beginRecording()
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard granted else { return }
+                    self?.beginRecording()
+                }
+            }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard granted else { return }
+                    self?.beginRecording()
+                }
             }
         }
     }
@@ -111,16 +120,43 @@ class MessagesViewModel: ObservableObject {
         recordingSeconds = 0
     }
 
-    func sendMessage() {
+    func sendMessage(appState: AppState) {
         audioPlayer?.stop()
         playbackTimer?.invalidate()
+        
+        var finalURL: URL? = nil
+        if let tempURL = recordingURL {
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let filename = "echo_voice_\(UUID().uuidString).m4a"
+            let destination = documents.appendingPathComponent(filename)
+            do {
+                try FileManager.default.copyItem(at: tempURL, to: destination)
+                finalURL = destination
+            } catch {
+                print("Error saving audio file: \(error)")
+            }
+        }
+
+        let newMessage = VoiceMessage(
+            senderName: appState.userName,
+            senderEmoji: "👩🏽",
+            duration: recordingTimeFormatted,
+            date: Date(),
+            isFromCaregiver: false,
+            text: "Mensaje de voz",
+            audioURL: finalURL
+        )
+
         withAnimation {
+            appState.voiceMessages.insert(newMessage, at: 0)
             messageSent = true
             hasRecording = false
             isPlaying = false
             playbackProgress = 0
             recordingSeconds = 0
+            recordingURL = nil
         }
+        
         // Reset after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation { self.messageSent = false }

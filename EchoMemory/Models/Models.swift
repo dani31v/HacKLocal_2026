@@ -11,13 +11,13 @@ struct EmotionalEntry: Identifiable, Codable {
     enum Mood: String, Codable, CaseIterable {
         case great = "Bien"
         case neutral = "Neutro"
-        case sad = "Mal"
+        case sad = "Decaído"
 
         var color: Color {
             switch self {
-            case .great: return Color("MoodGreen")
-            case .neutral: return Color("MoodYellow")
-            case .sad: return Color("MoodRed")
+            case .great: return Color.moodGreen
+            case .neutral: return Color.moodYellow
+            case .sad: return Color.moodRed
             }
         }
 
@@ -41,15 +41,21 @@ struct EmotionalEntry: Identifiable, Codable {
     static func sampleData() -> [EmotionalEntry] {
         let calendar = Calendar.current
         let today = Date()
-        return [
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -6, to: today)!, mood: .neutral),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -5, to: today)!, mood: .sad),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -4, to: today)!, mood: .neutral, note: "Tomé mi medicina"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -3, to: today)!, mood: .great, note: "Llamé a mi hija"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -2, to: today)!, mood: .great, note: "Salí al jardín"),
-            EmotionalEntry(date: calendar.date(byAdding: .day, value: -1, to: today)!, mood: .neutral),
-            EmotionalEntry(date: today, mood: .great, note: "Me sentí con energía")
+        var entries: [EmotionalEntry] = []
+        let randomNotes = [
+            "Visité el jardín", "Hablé con mi hija", "Me sentí un poco cansada",
+            "Comí pastel", "Vi una película bonita", "Me dolió la espalda",
+            "Salí a caminar", "Día muy tranquilo", "Escuché música de antes",
+            "Recordé a mi mamá", "Dormí muy bien"
         ]
+        for i in (1..<30).reversed() {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let randomMood: Mood = [.great, .great, .neutral, .sad, .great].randomElement()!
+            let hasNote = Bool.random()
+            let note = hasNote ? randomNotes.randomElement()! : nil
+            entries.append(EmotionalEntry(date: date, mood: randomMood, note: note))
+        }
+        return entries
     }
 }
 
@@ -68,16 +74,16 @@ struct PhotoMemory: Identifiable {
         let calendar = Calendar.current
         let today = Date()
         return [
-            PhotoMemory(date: today, time: "10:15 AM", imageName: "cup.and.saucer.fill",
+            PhotoMemory(date: today, time: "10:15 AM", imageName: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800",
                         emoji: "😊", location: "Cocina", mood: .great),
-            PhotoMemory(date: today, time: "3:45 PM", imageName: "heart.fill",
-                        emoji: "❤️", relatedPerson: "Mamá", mood: .great),
-            PhotoMemory(date: today, time: "5:20 PM", imageName: "leaf.fill",
+            PhotoMemory(date: today, time: "3:45 PM", imageName: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800",
+                        emoji: "❤️", relatedPerson: "Hija", mood: .great),
+            PhotoMemory(date: today, time: "5:20 PM", imageName: "https://images.unsplash.com/photo-1416879598555-5380572ddad7?auto=format&fit=crop&q=80&w=800",
                         emoji: "😊", location: "Jardín", mood: .great),
             PhotoMemory(date: calendar.date(byAdding: .day, value: -1, to: today)!, time: "7:10 AM",
-                        imageName: "sunrise.fill", emoji: "😊", location: "Ventana", mood: .great),
+                        imageName: "https://images.unsplash.com/photo-1541883584821-2e6b72a6b245?auto=format&fit=crop&q=80&w=800", emoji: "😊", location: "Ventana", mood: .great),
             PhotoMemory(date: calendar.date(byAdding: .day, value: -1, to: today)!, time: "6:30 PM",
-                        imageName: "house.fill", emoji: "❤️", relatedPerson: "Familia", mood: .neutral)
+                        imageName: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800", emoji: "❤️", relatedPerson: "Familia", mood: .neutral)
         ]
     }
 }
@@ -88,18 +94,19 @@ struct Reminder: Identifiable {
     var title: String
     var detail: String
     var time: String
+    var timeDate: Date
     var icon: String
     var isCompleted: Bool = false
     var accentColor: Color
 
     static func sampleData() -> [Reminder] {
-        [
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return [
             Reminder(title: "Medicamento", detail: "Tomar pastilla azul con agua",
-                     time: "9:00 AM", icon: "pills.fill", accentColor: Color("AccentBlue")),
+                     time: "9:00 AM", timeDate: formatter.date(from: "9:00 AM") ?? Date(), icon: "pills.fill", accentColor: Color.echoMint),
             Reminder(title: "Cita médica", detail: "Con el Dr. Ramírez en el consultorio",
-                     time: "2:00 PM", icon: "stethoscope", accentColor: Color("AccentGreen")),
-            Reminder(title: "Llamada", detail: "Tu hija te llamará hoy",
-                     time: "4:30 PM", icon: "phone.fill", accentColor: Color("AccentPeach"))
+                     time: "2:00 PM", timeDate: formatter.date(from: "2:00 PM") ?? Date(), icon: "stethoscope", accentColor: Color.echoCoral)
         ]
     }
 }
@@ -113,12 +120,14 @@ struct VoiceMessage: Identifiable {
     var date: Date
     var isFromCaregiver: Bool
     var text: String?
+    var audioURL: URL?
 
     static func sampleMessages() -> [VoiceMessage] {
         [
-            VoiceMessage(senderName: "Tu mamá", senderEmoji: "👩‍🦳",
+            VoiceMessage(senderName: "Tu hija", senderEmoji: "👩🏽",
                          duration: "0:18", date: Date(), isFromCaregiver: true,
-                         text: "Me dio mucho gusto escucharte. Te quiero ❤️")
+                         text: "Hola mami, me dio mucho gusto escucharte. Te quiero ❤️",
+                         audioURL: nil)
         ]
     }
 }
