@@ -15,9 +15,9 @@ struct EmotionalEntry: Identifiable, Codable {
 
         var color: Color {
             switch self {
-            case .great: return Color("MoodGreen")
-            case .neutral: return Color("MoodYellow")
-            case .sad: return Color("MoodRed")
+            case .great: return Color.moodGreen
+            case .neutral: return Color.moodYellow
+            case .sad: return Color.moodRed
             }
         }
 
