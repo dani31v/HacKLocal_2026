@@ -42,10 +42,17 @@ struct EmotionalEntry: Identifiable, Codable {
         let calendar = Calendar.current
         let today = Date()
         var entries: [EmotionalEntry] = []
+        let randomNotes = [
+            "Visité el jardín", "Hablé con mi hija", "Me sentí un poco cansada",
+            "Comí pastel", "Vi una película bonita", "Me dolió la espalda",
+            "Salí a caminar", "Día muy tranquilo", "Escuché música de antes",
+            "Recordé a mi mamá", "Dormí muy bien"
+        ]
         for i in (0..<30).reversed() {
             guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
             let randomMood: Mood = [.great, .great, .neutral, .sad, .great].randomElement()!
-            let note = i < 3 ? (randomMood == .great ? "Me sentí bien" : "Un día normal") : nil
+            let hasNote = Bool.random()
+            let note = hasNote ? randomNotes.randomElement()! : nil
             entries.append(EmotionalEntry(date: date, mood: randomMood, note: note))
         }
         return entries

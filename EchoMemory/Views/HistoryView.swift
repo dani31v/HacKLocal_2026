@@ -120,8 +120,10 @@ struct HistoryView: View {
                     .frame(maxWidth: .infinity)
 
                     // MARK: - Today's Mood Logger
-                    MoodLoggerCard()
-                        .padding(.horizontal, 20)
+                    if selectedPeriod == .day {
+                        MoodLoggerCard()
+                            .padding(.horizontal, 20)
+                    }
 
                     // MARK: - Entry list
                     VStack(alignment: .leading, spacing: 12) {
@@ -221,26 +223,45 @@ struct EmotionLineChart: View {
                     }
 
                     // Data points
-                    ForEach(entries.indices, id: \.self) { i in
-                        let entry = entries[i]
-                        let point = points[i]
-                        Circle()
-                            .fill(entry.mood.color)
-                            .frame(width: 12, height: 12)
-                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                            .position(point)
-                            .opacity(appeared ? 1 : 0)
-                            .animation(.spring(response: 0.5).delay(Double(i) * 0.08), value: appeared)
+                    if entries.count <= 7 {
+                        ForEach(entries.indices, id: \.self) { i in
+                            let entry = entries[i]
+                            let point = points[i]
+                            Circle()
+                                .fill(entry.mood.color)
+                                .frame(width: 12, height: 12)
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                .position(point)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.spring(response: 0.5).delay(Double(i) * 0.08), value: appeared)
+                        }
+                    } else {
+                        // For larger datasets (e.g. Month), show a dot for the current day only or smaller dots
+                        ForEach(entries.indices, id: \.self) { i in
+                            let entry = entries[i]
+                            let point = points[i]
+                            Circle()
+                                .fill(entry.mood.color)
+                                .frame(width: 6, height: 6)
+                                .position(point)
+                                .opacity(appeared ? 1 : 0)
+                                .animation(.spring(response: 0.5).delay(Double(i) * 0.02), value: appeared)
+                        }
                     }
                 }
 
                 // Day labels at bottom
                 HStack(spacing: 0) {
                     ForEach(entries.indices, id: \.self) { i in
-                        Text(entries[i].date.shortDay)
-                            .font(.echoSmall)
-                            .foregroundColor(Color.echoTextMuted)
-                            .frame(maxWidth: .infinity)
+                        if entries.count <= 7 || i % 5 == 0 || i == entries.count - 1 {
+                            Text(entries.count <= 7 ? entries[i].date.shortDay : "\(Calendar.current.component(.day, from: entries[i].date))")
+                                .font(.echoSmall)
+                                .foregroundColor(Color.echoTextMuted)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Spacer()
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                 }
                 .position(x: geo.size.width / 2, y: geo.size.height - 12)
